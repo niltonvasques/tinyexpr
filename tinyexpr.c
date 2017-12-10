@@ -54,7 +54,7 @@ typedef double (*te_fun2)(double, double);
 
 enum {
     TOK_NULL = TE_CLOSURE7+1, TOK_ERROR, TOK_END, TOK_SEP,
-    TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_VARIABLE, TOK_INFIX
+    TOK_OPEN, TOK_CLOSE, TOK_NUMBER, TOK_VARIABLE, TOK_INFIX, TOK_STRING
 };
 
 
@@ -66,6 +66,7 @@ typedef struct state {
     const char *next;
     int type;
     union {double value; const double *bound; const void *function;};
+    char *string_value;
     void *context;
 
     const te_variable *lookup;
@@ -236,8 +237,22 @@ void next_token(state *s) {
             return;
         }
 
+        /* Try reading a string. */
+        if (s->next[0] == '\'') {
+            int string_length = 0;
+            s->next++;
+            for (string_length = 0; s->next[string_length] != '\''; string_length++);
+            s->string_value = (char*) malloc( sizeof(char) * (string_length + 1));
+            int i = 0;
+            while(s->next[0] != '\'') {
+              s->string_value[i] = s->next[0];
+              s->next++;
+              i++;
+            }
+            s->type = TOK_STRING;
+            printf("STRING FOUND %s with %d size\n", s->string_value, string_length);
         /* Try reading a number. */
-        if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.') {
+        } else if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.') {
             s->value = strtod(s->next, (char**)&s->next);
             s->type = TOK_NUMBER;
         } else {
